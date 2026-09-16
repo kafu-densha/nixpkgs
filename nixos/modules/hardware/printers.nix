@@ -267,7 +267,14 @@ in
           '';
         }
       )
-    ];
+    ]
+    ++ map (class: {
+      assertion = cfg.ensureClasses.${class}.printers != [ ] || cfg.ensureClasses.${class}.classes != [ ];
+      message = ''
+        At least one of the lists `config.hardware.printers.ensureClasses.${class}.printers`
+        and `config.hardware.printers.ensureClasses.${class}.classes` has to be non-empty.
+      '';
+    }) (builtins.attrNames cfg.ensureClasses);
 
     systemd.services.cups = {
       postStart =
@@ -332,17 +339,6 @@ in
           ${lib.optionalString (cfg.ensureDefaultPrinter != null) (lpadmin {
             d = cfg.ensureDefaultPrinter;
           })}
-
-          #### CLASS DEFINITIONS ####
-          lpadmin -p _tmp -v file:/dev/null
-          ${lib.concatMapStringsSep "\n" (
-            className:
-            lpadmin {
-              p = "_tmp";
-              c = className;
-            }
-          ) classNames}
-          lpadmin -x _tmp
 
           #### ADDING PRINTERS TO CLASSES ####
           ${lib.concatMapStringsSep "\n" (
